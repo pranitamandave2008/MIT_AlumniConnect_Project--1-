@@ -1,0 +1,109 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIT AlumniConnect</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <a href="#home" class="logo">MIT <span>AlumniConnect</span></a>
+
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#directory">Alumni Directory</a>
+            <a href="#about">About</a>
+        </nav>
+    </header>
+
+    <section class="hero" id="home">
+        <p class="eyebrow">MAHARASHTRA INSTITUTE OF TECHNOLOGY</p>
+
+        <h1>
+            One Community.<br>
+            <span>Endless Possibilities.</span>
+        </h1>
+
+        <p class="hero-text">
+            Connect with alumni, explore career journeys, and discover
+            opportunities through your MIT community.
+        </p>
+
+        <a class="primary-btn" href="#directory">Explore Alumni</a>
+    </section>
+
+    <main class="container" id="directory">
+
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">YOUR NETWORK STARTS HERE</p>
+                <h2>Alumni Directory</h2>
+                <p>Find graduates and explore their professional journeys.</p>
+            </div>
+
+            <div class="count-box">
+                <strong id="alumni-count">0</strong>
+                <span>Alumni found</span>
+            </div>
+        </div>
+
+        <div class="search-panel">
+            <input
+                type="search"
+                id="search-input"
+                placeholder="Search name, company, skills or city..."
+                aria-label="Search alumni"
+            >
+
+            <select id="year-filter" aria-label="Filter by passout year">
+                <option value="">All Passout Years</option>
+            </select>
+
+            <select id="domain-filter" aria-label="Filter by domain">
+                <option value="">All Domains</option>
+                <option value="IT">IT</option>
+                <option value="Web Development">Web Development</option>
+                <option value="Software Development">Software Development</option>
+                <option value="AI/ML">AI/ML</option>
+                <option value="Data Science">Data Science</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Cloud Computing">Cloud Computing</option>
+                <option value="Networking">Networking</option>
+                <option value="Database Management">Database Management</option>
+                <option value="Mobile App Development">Mobile App Development</option>
+                <option value="Embedded Systems">Embedded Systems</option>
+            </select>
+
+            <button id="search-button" type="button">Search</button>
+
+            <button id="reset-button" type="button" class="reset-btn">
+                Reset Filters
+            </button>
+        </div>
+
+        <p id="status-message" role="status">Loading alumni...</p>
+
+        <div class="alumni-grid" id="alumni-list"></div>
+
+    </main>
+
+    <section class="about" id="about">
+        <h2>Stronger Together</h2>
+        <p>
+            AlumniConnect helps students and graduates build meaningful
+            professional connections within the MIT community.
+        </p>
+    </section>
+
+    <footer>
+        <p>MIT AlumniConnect Â· Student Alumni Networking Portal</p>
+        <p>Demonstration project. Sample profiles may be fictional.</p>
+    </footer>
+
+    <script src="./script.js"></script>
+</body>
+</html>
+
