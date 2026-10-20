@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard · AlumniConnect{% endblock %}
+{% block content %}
+<section class="page-banner admin-banner"><span class="eyebrow eyebrow-light">PORTAL MANAGEMENT</span><h1>Admin dashboard.</h1><p>Keep the alumni community accurate, useful, and connected.</p><div class="admin-actions"><a class="button button-light" href="{{ url_for('add_alumni') }}">+ Add alumni</a><a class="button button-outline-light" href="{{ url_for('add_opportunity') }}">+ Add opportunity</a></div></section>
+<section class="section"><div class="admin-stats"><div class="admin-stat"><span>ALUMNI PROFILES</span><strong>{{ alumni_count }}</strong><small>Profiles in the directory</small></div><div class="admin-stat"><span>OPPORTUNITIES</span><strong>{{ opportunity_count }}</strong><small>Career board listings</small></div><div class="admin-stat"><span>ACCESS LEVEL</span><strong>Admin</strong><small>Authorized management</small></div></div>
+<div class="section-heading"><div><span class="eyebrow">RECORD MANAGEMENT</span><h2>Alumni records.</h2></div><a class="button button-primary" href="{{ url_for('add_alumni') }}">Add record +</a></div>
+<div class="table-wrap"><table><thead><tr><th>Name</th><th>Class</th><th>Company</th><th>Role</th><th>Action</th></tr></thead><tbody>{% for person in alumni %}<tr><td><a href="{{ url_for('alumni_detail', alumni_id=person.id) }}">{{ person.full_name }}</a></td><td>{{ person.graduation_year }}</td><td>{{ person.current_company }}</td><td>{{ person.job_title }}</td><td><form method="post" action="{{ url_for('delete_alumni', alumni_id=person.id) }}" onsubmit="return confirm('Delete this alumni profile?')"><button class="delete-button" type="submit">Delete</button></form></td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

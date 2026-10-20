@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ person.full_name }} · AlumniConnect{% endblock %}
+{% block content %}
+<section class="page-banner"><span class="eyebrow">ALUMNI DIRECTORY / PROFILE</span><h1>Meet {{ person.full_name.split()[0] }}.</h1><p>Every career has a story worth sharing.</p></section>
+<section class="profile-layout">
+  <article class="profile-card">
+    <div class="avatar avatar-large">{{ person.full_name.split()[0][0] }}{{ person.full_name.split()[-1][0] }}</div>
+    <h2>{{ person.full_name }}</h2><p class="job-title">{{ person.job_title }}</p>
+    <div class="profile-meta"><span>🎓</span> Class of {{ person.graduation_year }}</div>
+    <div class="profile-meta"><span>↗</span> {{ person.current_company }}</div>
+    <a class="button button-primary full-button" href="{{ person.linkedin_url or '#' }}" target="_blank" rel="noopener">Professional profile ↗</a>
+    <small class="muted">Demo link only; replace with a verified profile URL.</small>
+  </article>
+  <article class="content-panel"><span class="eyebrow">ABOUT</span><h2>Career snapshot</h2><p>{{ person.bio or 'This alum has not added a bio yet.' }}</p><div class="panel-divider"></div><span class="eyebrow">SKILLS & EXPERTISE</span><div class="skill-tags skill-tags-large">{% for s in (person.skills or '').split(',') if s.strip() %}<span>{{ s.strip() }}</span>{% endfor %}</div><div class="panel-divider"></div><span class="eyebrow">EDUCATION</span><h3>{{ person.degree }}</h3><p class="muted">Maharashtra Institute of Technology · Chhatrapati Sambhajinagar</p></article>
+</section>
+{% endblock %}

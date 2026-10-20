@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Find Alumni · MIT AlumniConnect{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow"><span class="eyebrow-dot"></span> YOUR COMMUNITY, YOUR FUTURE</span>
+    <h1>One connection can<br><em>change your career.</em></h1>
+    <p>Discover MIT alumni, learn from their journeys, and find opportunities to take your next step.</p>
+    <a class="button button-light" href="#directory">Explore alumni <span>↘</span></a>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+    <div class="hero-center"><span>MIT</span><small>ALUMNI<br>NETWORK</small></div>
+    <div class="orbit-node node-one">A</div><div class="orbit-node node-two">P</div><div class="orbit-node node-three">M</div><div class="orbit-node node-four">R</div>
+  </div>
+  <div class="hero-bottom"><span>ALUMNI DIRECTORY</span><span>CAREER SUPPORT</span><span>MENTORSHIP</span></div>
+</section>
+<section class="stats-row">
+  <div><strong>{{ total }}</strong><span>Alumni profiles</span></div>
+  <div><strong>15<span class="stat-plus"> yrs</span></strong><span>Of alumni history to reconnect</span></div>
+  <div><strong>05</strong><span>Ways to grow together</span></div>
+</section>
+<section class="section" id="directory">
+  <div class="section-heading">
+    <div><span class="eyebrow">THE ALUMNI DIRECTORY</span><h2>Find your people.</h2><p>Search by name, company, job role, or skills.</p></div>
+    <span class="result-count">{{ alumni|length }} results</span>
+  </div>
+  <form class="search-panel" method="get" action="{{ url_for('index') }}">
+    <label class="search-main"><span>⌕</span><input name="q" value="{{ q }}" placeholder="Try “Python”, “Aarav” or “Analytics”"></label>
+    <label><span>Graduation year</span><select name="year"><option value="">All years</option>{% for item in years %}<option value="{{ item.year }}" {% if year|string == item.year|string %}selected{% endif %}>{{ item.year }}</option>{% endfor %}</select></label>
+    <label><span>Company</span><select name="company"><option value="">All companies</option>{% for item in companies %}<option value="{{ item.company }}" {% if company == item.company %}selected{% endif %}>{{ item.company }}</option>{% endfor %}</select></label>
+    <label><span>Job role</span><input name="role" value="{{ role }}" placeholder="e.g. Developer"></label>
+    <label><span>Skills</span><input name="skill" value="{{ skill }}" placeholder="e.g. Python"></label>
+    <button class="button button-primary" type="submit">Search alumni <span>→</span></button>
+    <a class="reset-link" href="{{ url_for('index') }}">Clear filters</a>
+  </form>
+  {% if alumni %}
+  <div class="alumni-grid">
+    {% for person in alumni %}
+    <article class="alumni-card">
+      <div class="card-top"><div class="avatar avatar-{{ loop.index0 % 5 }}">{{ person.full_name.split()[0][0] }}{{ person.full_name.split()[-1][0] }}</div><span class="year-pill">CLASS OF {{ person.graduation_year }}</span></div>
+      <h3>{{ person.full_name }}</h3><p class="job-title">{{ person.job_title or 'Career details not added' }}</p>
+      <div class="company-line"><span class="company-icon">↗</span>{{ person.current_company or 'Company not listed' }}</div>
+      <div class="skill-tags">{% for s in (person.skills or '').split(',')[:3] if s.strip() %}<span>{{ s.strip() }}</span>{% endfor %}</div>
+      <a class="card-link" href="{{ url_for('alumni_detail', alumni_id=person.id) }}">View profile <span>→</span></a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">⌕</div><h3>No alumni found</h3><p>Try another keyword or clear some filters.</p><a class="button button-primary" href="{{ url_for('index') }}">Show all alumni</a></div>
+  {% endif %}
+  <p class="demo-note"><span>ⓘ</span> This prototype currently uses fictional demo profiles. Records must be verified before real-world use.</p>
+</section>
+<section class="cta-band"><div><span class="eyebrow eyebrow-light">GIVE BACK. GROW TOGETHER.</span><h2>Your experience could be<br>someone’s starting point.</h2></div><a class="button button-light" href="{{ url_for('mentorship') }}">Explore mentorship <span>→</span></a></section>
+{% endblock %}

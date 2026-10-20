@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Mentorship · AlumniConnect{% endblock %}
+{% block content %}
+<section class="page-banner"><span class="eyebrow">LEARN FROM EXPERIENCE</span><h1>Guidance that moves you forward.</h1><p>Discover alumni who are open to sharing career advice.</p></section>
+<section class="section"><div class="section-heading"><div><span class="eyebrow">MENTOR DIRECTORY</span><h2>Find a mentor.</h2><p>Search by name, role, or skill.</p></div></div>
+<form class="mentor-search" method="get"><input name="q" value="{{ q }}" placeholder="Search Python, developer, analytics…"><button class="button button-primary">Search mentors →</button></form>
+<div class="alumni-grid">
+{% for person in mentors %}
+<article class="alumni-card"><div class="card-top"><div class="avatar">{{ person.full_name.split()[0][0] }}{{ person.full_name.split()[-1][0] }}</div><span class="mentor-pill">MENTOR</span></div><h3>{{ person.full_name }}</h3><p class="job-title">{{ person.job_title }}</p><div class="company-line">{{ person.current_company }}</div><p class="mentor-bio">{{ person.bio }}</p><div class="skill-tags">{% for s in (person.skills or '').split(',')[:3] if s.strip() %}<span>{{ s.strip() }}</span>{% endfor %}</div><a class="card-link" href="{{ url_for('alumni_detail', alumni_id=person.id) }}">View profile <span>→</span></a></article>
+{% else %}<div class="empty-state"><h3>No mentors match that search</h3><p>Try a different skill or keyword.</p></div>{% endfor %}
+</div><p class="demo-note">Mentor availability is a fictional demo setting. Confirm participation before contacting anyone.</p></section>
+{% endblock %}

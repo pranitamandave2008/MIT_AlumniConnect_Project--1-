@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Admin Login · AlumniConnect{% endblock %}
+{% block content %}
+<section class="login-wrap"><div class="login-aside"><span class="eyebrow eyebrow-light">WELCOME BACK</span><h1>Good things<br>happen when<br><em>we connect.</em></h1><p>Manage alumni records and share opportunities with your community.</p></div><form class="login-card" method="post"><span class="eyebrow">ADMIN ACCESS</span><h2>Sign in</h2><p class="muted">Use your authorized account to manage the portal.</p><label>Email address<input type="email" name="email" required placeholder="admin@college.edu"></label><label>Password<input type="password" name="password" required placeholder="Enter your password"></label><button class="button button-primary full-button" type="submit">Sign in securely →</button><small class="muted">Student and alumni self-registration is not enabled in this prototype.</small></form></section>
+{% endblock %}

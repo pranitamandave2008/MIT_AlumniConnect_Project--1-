@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Career Opportunities · AlumniConnect{% endblock %}
+{% block content %}
+<section class="page-banner"><span class="eyebrow">TAKE YOUR NEXT STEP</span><h1>Opportunity starts here.</h1><p>Explore sample internships, career resources, and community events.</p>{% if session.get('role') == 'admin' %}<a class="button button-light" href="{{ url_for('add_opportunity') }}">+ Post opportunity</a>{% endif %}</section>
+<section class="section">
+  <div class="section-heading"><div><span class="eyebrow">CAREER BOARD</span><h2>Open doors.</h2></div><span class="result-count">{{ opportunities|length }} listings</span></div>
+  <div class="opportunity-list">
+  {% for item in opportunities %}
+    <article class="opportunity-card"><div class="opportunity-symbol">↗</div><div class="opportunity-info"><span class="type-pill">{{ item.opportunity_type }}</span><h3>{{ item.title }}</h3><p class="company-line">{{ item.company }}</p><p>{{ item.description }}</p>{% if item.application_deadline %}<small class="muted">Deadline: {{ item.application_deadline }}</small>{% endif %}</div><a class="button button-outline" href="{{ item.apply_url or '#' }}" target="_blank" rel="noopener">View details ↗</a></article>
+  {% else %}<div class="empty-state"><h3>No current listings</h3><p>Check back later for opportunities.</p></div>{% endfor %}
+  </div><p class="demo-note">Sample listings are fictional. Verify opportunities before applying.</p>
+</section>
+{% endblock %}

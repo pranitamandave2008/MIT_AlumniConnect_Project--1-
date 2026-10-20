@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Add Alumni · AlumniConnect{% endblock %}
+{% block content %}
+<section class="form-page"><a class="back-link" href="{{ url_for('admin_dashboard') }}">← Back to dashboard</a><span class="eyebrow">DIRECTORY MANAGEMENT</span><h1>Add an alumni profile.</h1><p class="muted">Enter only verified information you are authorized to store.</p>
+<form class="edit-form" method="post">
+<div class="form-grid"><label>Full name *<input name="full_name" required></label><label>Graduation year *<input name="graduation_year" type="number" min="1980" max="2100" required></label><label>Degree<input name="degree" value="B.Tech Computer Science"></label><label>Current company<input name="current_company"></label><label>Job title<input name="job_title"></label><label>Skills (comma-separated)<input name="skills" placeholder="Python, SQL, Web Development"></label><label class="span-two">Professional profile URL<input name="linkedin_url" type="url" placeholder="https://www.linkedin.com/in/..."></label><label class="span-two">Short bio<textarea name="bio" rows="4"></textarea></label><label class="checkbox-label span-two"><input type="checkbox" name="mentor_available"> Available for mentorship</label></div>
+<button class="button button-primary" type="submit">Save alumni profile →</button>
+</form></section>
+{% endblock %}

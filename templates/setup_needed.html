@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Database Setup Needed · AlumniConnect{% endblock %}
+{% block content %}
+<section class="empty-state setup-error"><div class="empty-icon">!</div><h1>Database setup needed</h1><p>AlumniConnect could not connect to the MySQL database. Check that MySQL is running, the database exists, and your DB settings are correct.</p><details><summary>Technical details</summary><pre>{{ error }}</pre></details><a class="button button-primary" href="{{ url_for('index') }}">Try again</a></section>
+{% endblock %}

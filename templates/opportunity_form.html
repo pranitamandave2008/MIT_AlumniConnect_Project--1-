@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Post Opportunity · AlumniConnect{% endblock %}
+{% block content %}
+<section class="form-page"><a class="back-link" href="{{ url_for('opportunities') }}">← Back to opportunities</a><span class="eyebrow">CAREER BOARD</span><h1>Share an opportunity.</h1><p class="muted">Post a verified internship, job, or mentorship event.</p>
+<form class="edit-form" method="post"><div class="form-grid"><label>Title *<input name="title" required></label><label>Company / organization *<input name="company" required></label><label>Type<select name="opportunity_type"><option>Internship</option><option>Full-time</option><option>Part-time</option><option>Mentorship</option><option>Other</option></select></label><label>Application deadline<input name="application_deadline" type="date"></label><label class="span-two">Description *<textarea name="description" rows="5" required></textarea></label><label class="span-two">Application URL<input name="apply_url" type="url" placeholder="https://..."></label></div><button class="button button-primary" type="submit">Publish opportunity →</button></form></section>
+{% endblock %}
