@@ -1,63 +1,109 @@
 
+require("dotenv").config();
+
 const express = require("express");
-const mysql = require("mysql2");
+const { MongoClient } = require("mongodb");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 app.use(express.json());
-
-// ADD THIS LINE HERE
 app.use(express.static("public"));
 
-// Connect to the local MySQL database
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "mit_alumniconnect",
-    port: 3306
-});
+// Allow your GitHub Pages frontend
+const allowedOrigin = "https://pranitamandave2008.github.io";
 
-db.connect((err) => {
-    if (err) {
-        console.error("Database connection failed:", err.message);
-        return;
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+
+    if (origin === allowedOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+        res.setHeader(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS"
+        );
+        res.setHeader(
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization"
+        );
     }
 
-    console.log("MySQL connected successfully!");
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+    }
+
+    next();
 });
 
-// Test route
+const client = new MongoClient(MONGODB_URI || "");
+let db;
+
 app.get("/", (req, res) => {
     res.send("MIT AlumniConnect Backend is Running!");
 });
 
-// Test database route
-app.get("/test-db", (req, res) => {
-    db.query("SELECT DATABASE() AS databaseName", (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
+});
+
+app.get("/test-db", async (req, res) => {
+    try {
+        await db.command({ ping: 1 });
+
+        res.json({
+            status: "connected",
+            database: db.databaseName
+        });
+    } catch (error) {
+        console.error("MongoDB test failed:", error.message);
+        res.status(500).json({
+            error: "MongoDB connection test failed"
+        });
+    }
+});
+
+app.get("/api/alumni", async (req, res) => {
+    try {
+        const alumni = await db
+            .collection("alumni")
+            .find({})
+            .sort({ graduation_year: -1 })
+            .toArray();
+
+        res.json(alumni);
+    } catch (error) {
+        console.error("Alumni query failed:", error.message);
+        res.status(500).json({
+            error: "Unable to retrieve alumni records"
+        });
+    }
+});
+
+// Connect to MongoDB BEFORE starting Express
+async function startServer() {
+    try {
+        if (!MONGODB_URI) {
+            throw new Error("MONGODB_URI is missing");
         }
 
-        res.json(results[0]);
-    });
-});
+        await client.connect();
+        db = client.db();
 
-// NEW: Get all alumni
-app.get("/api/alumni", (req, res) => {
-    const sql = "SELECT * FROM alumni ORDER BY graduation_year DESC";
+        console.log(
+            `Connected to MongoDB database: ${db.databaseName}`
+        );
 
-    db.query(sql, (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+        app.listen(PORT, "0.0.0.0", () => {
+            console.log(
+                `MIT AlumniConnect API listening on port ${PORT}`
+            );
+        });
+    } catch (error) {
+        console.error("Startup failed:", error.message);
+        process.exit(1);
+    }
+}
 
-        res.json(results);
-    });
-});
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+startServer();
