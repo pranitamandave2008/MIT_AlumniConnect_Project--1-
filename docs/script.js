@@ -1,4 +1,3 @@
-
 const alumniList = document.getElementById("alumni-list");
 const searchInput = document.getElementById("search-input");
 const searchButton = document.getElementById("search-button");
@@ -8,38 +7,65 @@ const domainFilter = document.getElementById("domain-filter");
 const alumniCount = document.getElementById("alumni-count");
 const statusMessage = document.getElementById("status-message");
 
+const API_URL =
+    "https://mit-alumniconnect-project-1-1.onrender.com/api/alumni";
+
 let allAlumni = [];
 
 async function loadAlumni() {
     statusMessage.textContent = "Loading alumni...";
+    alumniCount.textContent = "0";
+    alumniList.replaceChildren();
 
     try {
-        const response = await fetch("https://mit-alumniconnect-project-1-1.onrender.com/api/alumni"
-);
+        const response = await fetch(API_URL);
 
         if (!response.ok) {
-            throw new Error("Could not load alumni records.");
+            throw new Error(`API request failed: ${response.status}`);
         }
 
-        allAlumni = await response.json();
+        const data = await response.json();
 
-        // Show every passout year from 2005 to 2026
+        if (!Array.isArray(data)) {
+            throw new Error("The API did not return an alumni list.");
+        }
+
+        allAlumni = data;
+
+        // Populate passout years from the database records.
         yearFilter.replaceChildren();
         addOption(yearFilter, "", "All Passout Years");
 
+        const years = [
+            ...new Set(
+                allAlumni
+                    .map(person => person.graduation_year)
+                    .filter(year => year !== null && year !== undefined && String(year).trim() !== "")
+                    .map(year => String(year).trim())
+            )
+        ].sort((a, b) => Number(b) - Number(a));
+
+        // Keep the requested year range even if some years have no records.
         for (let year = 2026; year >= 2005; year--) {
-            addOption(yearFilter, String(year), String(year));
+            if (!years.includes(String(year))) {
+                years.push(String(year));
+            }
         }
 
-        // Keep domain options from the HTML file
+        years.sort((a, b) => Number(b) - Number(a));
+
+        years.forEach(year => {
+            addOption(yearFilter, year, year);
+        });
+
         searchAlumni();
 
     } catch (error) {
-        console.error(error);
+        console.error("Unable to load alumni:", error);
         alumniCount.textContent = "0";
         alumniList.replaceChildren();
         statusMessage.textContent =
-            "Unable to load alumni. Please check the backend connection.";;
+            "Unable to load alumni. Please refresh the page or try again later.";
     }
 }
 
@@ -51,11 +77,13 @@ function addOption(select, value, label) {
 }
 
 function displayAlumni(alumni) {
-    alumniCount.textContent = alumni.length;
+    alumniCount.textContent = String(alumni.length);
     alumniList.replaceChildren();
 
     if (alumni.length === 0) {
-        statusMessage.textContent = "No matching alumni found.";
+        statusMessage.textContent = allAlumni.length === 0
+            ? "No alumni records are available."
+            : "No matching alumni found.";
 
         const empty = document.createElement("div");
         empty.className = "empty-state";
@@ -72,7 +100,7 @@ function displayAlumni(alumni) {
         const card = document.createElement("article");
         card.className = "alumni-card";
 
-        // Initials avatar - no photos
+        // Initials avatar
         const avatar = document.createElement("div");
         avatar.className = "avatar";
         avatar.textContent = (person.full_name || "?")
@@ -86,7 +114,7 @@ function displayAlumni(alumni) {
         const name = document.createElement("h3");
         name.textContent = person.full_name || "Name unavailable";
 
-        // Working details from imported Excel data
+        // Working details
         const working = document.createElement("p");
         working.className = "job-title";
         working.textContent =
@@ -118,14 +146,17 @@ function displayAlumni(alumni) {
             }
         });
 
-        // Skills, if available
+        // Skills
         if (person.skills) {
             const skills = document.createElement("div");
             skills.className = "skills";
 
-            person.skills
-                .split(",")
-                .map(skill => skill.trim())
+            const skillList = Array.isArray(person.skills)
+                ? person.skills
+                : String(person.skills).split(",");
+
+            skillList
+                .map(skill => String(skill).trim())
                 .filter(Boolean)
                 .forEach(skill => {
                     const tag = document.createElement("span");
@@ -137,7 +168,7 @@ function displayAlumni(alumni) {
             card.appendChild(skills);
         }
 
-        // LinkedIn profile link
+        // LinkedIn profile
         if (person.linkedin_url) {
             const linkedin = document.createElement("a");
             linkedin.href = person.linkedin_url;
@@ -166,7 +197,9 @@ function searchAlumni() {
             person.working_details,
             person.location,
             person.department,
-            person.skills,
+            Array.isArray(person.skills)
+                ? person.skills.join(" ")
+                : person.skills,
             person.domain,
             person.graduation_year
         ]
@@ -178,7 +211,7 @@ function searchAlumni() {
 
         const matchesYear =
             !selectedYear ||
-            String(person.graduation_year) === selectedYear;
+            String(person.graduation_year ?? "").trim() === selectedYear;
 
         const matchesDomain =
             !selectedDomain ||
@@ -195,7 +228,6 @@ function resetFilters() {
     searchInput.value = "";
     yearFilter.value = "";
     domainFilter.value = "";
-
     searchAlumni();
 }
 
@@ -205,4 +237,5 @@ yearFilter.addEventListener("change", searchAlumni);
 domainFilter.addEventListener("change", searchAlumni);
 resetButton.addEventListener("click", resetFilters);
 
+// Load records when the page opens.
 loadAlumni();
