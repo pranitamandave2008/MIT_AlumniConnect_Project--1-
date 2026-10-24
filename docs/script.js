@@ -12,72 +12,126 @@ const API_URL =
 
 let allAlumni = [];
 
-// Classify alumni using their actual work and professional details.
+const DOMAIN_CATEGORIES = [
+    "IT",
+    "Web Development",
+    "Software Development",
+    "AI/ML",
+    "Data Science",
+    "Cybersecurity",
+    "Cloud Computing",
+    "Networking",
+    "Database Management",
+    "Mobile App Development",
+    "Embedded Systems",
+    "Other / Not specified"
+];
+
+// Normalize different spellings of existing domain values.
+function normalizeDomain(value) {
+    const domain = String(value || "").trim().toLowerCase();
+
+    const aliases = {
+        "it": "IT",
+        "information technology": "IT",
+        "web development": "Web Development",
+        "web developer": "Web Development",
+        "software development": "Software Development",
+        "software engineering": "Software Development",
+        "ai": "AI/ML",
+        "ai/ml": "AI/ML",
+        "artificial intelligence": "AI/ML",
+        "machine learning": "AI/ML",
+        "data science": "Data Science",
+        "data analytics": "Data Science",
+        "cyber security": "Cybersecurity",
+        "cybersecurity": "Cybersecurity",
+        "cloud": "Cloud Computing",
+        "cloud computing": "Cloud Computing",
+        "networking": "Networking",
+        "database management": "Database Management",
+        "mobile app development": "Mobile App Development",
+        "mobile application development": "Mobile App Development",
+        "embedded systems": "Embedded Systems",
+        "other": "Other / Not specified",
+        "other / not specified": "Other / Not specified"
+    };
+
+    return aliases[domain] || null;
+}
+
+// Classify using professional details rather than company name alone.
 function classifyDomain(person) {
+    // Prefer a valid domain already provided in the dataset.
+    const existingDomain = normalizeDomain(person.domain);
+
+    if (existingDomain) {
+        return existingDomain;
+    }
+
     const text = [
         person.job_title,
         person.working_details,
-        person.current_company,
-        person.domain,
         person.skills,
         person.department
     ]
-        .map(value => Array.isArray(value) ? value.join(" ") : value ?? "")
+        .map(value =>
+            Array.isArray(value) ? value.join(" ") : value ?? ""
+        )
         .join(" ")
         .toLowerCase();
 
     const rules = [
         {
-            domain: "Data & AI",
-            keywords: /\b(data scientist|data analyst|machine learning|artificial intelligence|ai engineer|data engineer|deep learning|generative ai)\b/
+            domain: "AI/ML",
+            pattern: /\b(ai\/ml|artificial intelligence|machine learning|deep learning|ml engineer|ai engineer|generative ai|nlp|natural language processing)\b/
         },
         {
-            domain: "IT & Software",
-            keywords: /\b(software engineer|software developer|developer|programmer|information technology|it support|web developer|app developer|cybersecurity|cyber security|devops|cloud engineer|network engineer|technical support|system administrator|full stack|frontend|front end|backend|back end|qa engineer|test engineer|database administrator|database developer|computer engineer)\b/
+            domain: "Data Science",
+            pattern: /\b(data scientist|data science|data analyst|data analytics|data engineer|business intelligence|big data|bi analyst)\b/
         },
         {
-            domain: "Electrical & Electronics",
-            keywords: /\b(electrical|electronics|embedded systems|embedded engineer|vlsi|telecommunication|instrumentation engineer)\b/
+            domain: "Cybersecurity",
+            pattern: /\b(cybersecurity|cyber security|information security|security analyst|penetration tester|ethical hacking|soc analyst)\b/
         },
         {
-            domain: "Mechanical & Manufacturing",
-            keywords: /\b(mechanical engineer|automotive|manufacturing|production engineer|industrial engineer|maintenance engineer)\b/
+            domain: "Cloud Computing",
+            pattern: /\b(cloud computing|cloud engineer|cloud architect|aws|azure|google cloud|devops|site reliability engineer|sre)\b/
         },
         {
-            domain: "Civil & Construction",
-            keywords: /\b(civil engineer|construction|structural engineer|site engineer|quantity surveyor)\b/
+            domain: "Database Management",
+            pattern: /\b(database administrator|database management|database developer|database engineer|dba|sql developer|oracle database|mongodb administrator)\b/
         },
         {
-            domain: "Finance & Accounting",
-            keywords: /\b(accountant|accounting|finance|financial analyst|banker|auditor|investment analyst|chartered accountant)\b/
+            domain: "Mobile App Development",
+            pattern: /\b(mobile app|mobile application|android developer|ios developer|flutter developer|react native|mobile developer)\b/
         },
         {
-            domain: "Business & Management",
-            keywords: /\b(marketing|sales executive|human resources|hr manager|recruiter|business analyst|business development|operations manager|entrepreneur|management consultant|project manager)\b/
+            domain: "Embedded Systems",
+            pattern: /\b(embedded systems|embedded software|embedded engineer|firmware engineer|microcontroller|iot engineer|vlsi)\b/
         },
         {
-            domain: "Education & Research",
-            keywords: /\b(teacher|lecturer|professor|researcher|academic|educator|scientist)\b/
+            domain: "Networking",
+            pattern: /\b(network engineer|network administrator|networking|ccna|routing and switching|telecommunications engineer)\b/
         },
         {
-            domain: "Healthcare",
-            keywords: /\b(doctor|nurse|pharmacist|healthcare|medical officer|clinical|physician)\b/
+            domain: "Web Development",
+            pattern: /\b(web developer|web development|frontend developer|front-end developer|front end developer|backend developer|back-end developer|back end developer|full stack developer|full-stack developer|html|css|javascript|react\.?js|angular|vue\.?js)\b/
         },
         {
-            domain: "Design",
-            keywords: /\b(graphic designer|ui\/ux|ui designer|ux designer|product designer|interior designer|visual designer)\b/
+            domain: "Software Development",
+            pattern: /\b(software developer|software development|software engineer|application developer|programmer|qa engineer|test automation engineer)\b/
+        },
+        {
+            domain: "IT",
+            pattern: /\b(information technology|it support|technical support|system administrator|systems administrator|help desk|it analyst|computer operator)\b/
         }
     ];
 
     for (const rule of rules) {
-        if (rule.keywords.test(text)) {
+        if (rule.pattern.test(text)) {
             return rule.domain;
         }
-    }
-
-    // Preserve an existing domain if one is already provided.
-    if (person.domain && String(person.domain).trim()) {
-        return String(person.domain).trim();
     }
 
     return "Other / Not specified";
@@ -108,13 +162,12 @@ async function loadAlumni() {
             throw new Error("The API did not return an alumni list.");
         }
 
-        // Classify records without changing the database.
         allAlumni = data.map(person => ({
             ...person,
             classified_domain: classifyDomain(person)
         }));
 
-        // Populate passing-year dropdown using available records.
+        // Populate the passing-year dropdown.
         yearFilter.replaceChildren();
         addOption(yearFilter, "", "All Passout Years");
 
@@ -128,7 +181,6 @@ async function loadAlumni() {
             }
         });
 
-        // Also show the requested range.
         for (let year = 2005; year <= 2026; year++) {
             years.add(String(year));
         }
@@ -137,15 +189,13 @@ async function loadAlumni() {
             .sort((a, b) => Number(b) - Number(a))
             .forEach(year => addOption(yearFilter, year, year));
 
-        // Populate domain dropdown from classified records.
+        // Populate the domain dropdown with the existing categories.
         domainFilter.replaceChildren();
         addOption(domainFilter, "", "All Domains");
 
-        const domains = [
-            ...new Set(allAlumni.map(person => person.classified_domain))
-        ].sort((a, b) => a.localeCompare(b));
-
-        domains.forEach(domain => addOption(domainFilter, domain, domain));
+        DOMAIN_CATEGORIES.forEach(domain => {
+            addOption(domainFilter, domain, domain);
+        });
 
         searchAlumni();
 
@@ -182,7 +232,6 @@ function displayAlumni(alumni) {
         const card = document.createElement("article");
         card.className = "alumni-card";
 
-        // Initials avatar.
         const avatar = document.createElement("div");
         avatar.className = "avatar";
         avatar.textContent = String(person.full_name || "?")
@@ -193,11 +242,9 @@ function displayAlumni(alumni) {
             .map(word => word[0].toUpperCase())
             .join("");
 
-        // Alumni name.
         const name = document.createElement("h3");
         name.textContent = person.full_name || "Name unavailable";
 
-        // Profession or working details.
         const working = document.createElement("p");
         working.className = "job-title";
         working.textContent =
@@ -207,7 +254,6 @@ function displayAlumni(alumni) {
 
         card.append(avatar, name, working);
 
-        // Additional details.
         const details = [
             ["Passout Year", person.graduation_year],
             ["Domain", person.classified_domain],
@@ -229,7 +275,6 @@ function displayAlumni(alumni) {
             }
         });
 
-        // Skills.
         if (person.skills) {
             const skills = document.createElement("div");
             skills.className = "skills";
@@ -251,7 +296,6 @@ function displayAlumni(alumni) {
             card.appendChild(skills);
         }
 
-        // LinkedIn profile.
         if (person.linkedin_url) {
             const linkedin = document.createElement("a");
             linkedin.href = person.linkedin_url;
@@ -286,9 +330,9 @@ function searchAlumni() {
             person.graduation_year,
             person.linkedin_url
         ]
-            .map(value => Array.isArray(value)
-                ? value.join(" ")
-                : value ?? "")
+            .map(value =>
+                Array.isArray(value) ? value.join(" ") : value ?? ""
+            )
             .join(" ")
             .toLowerCase();
 
@@ -321,5 +365,4 @@ yearFilter.addEventListener("change", searchAlumni);
 domainFilter.addEventListener("change", searchAlumni);
 resetButton.addEventListener("click", resetFilters);
 
-// Load alumni when the page opens.
 loadAlumni();
