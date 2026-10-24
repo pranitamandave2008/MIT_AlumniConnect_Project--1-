@@ -12,6 +12,84 @@ const API_URL =
 
 let allAlumni = [];
 
+// Classify alumni using their actual work and professional details.
+function classifyDomain(person) {
+    const text = [
+        person.job_title,
+        person.working_details,
+        person.current_company,
+        person.domain,
+        person.skills,
+        person.department
+    ]
+        .map(value => Array.isArray(value) ? value.join(" ") : value ?? "")
+        .join(" ")
+        .toLowerCase();
+
+    const rules = [
+        {
+            domain: "Data & AI",
+            keywords: /\b(data scientist|data analyst|machine learning|artificial intelligence|ai engineer|data engineer|deep learning|generative ai)\b/
+        },
+        {
+            domain: "IT & Software",
+            keywords: /\b(software engineer|software developer|developer|programmer|information technology|it support|web developer|app developer|cybersecurity|cyber security|devops|cloud engineer|network engineer|technical support|system administrator|full stack|frontend|front end|backend|back end|qa engineer|test engineer|database administrator|database developer|computer engineer)\b/
+        },
+        {
+            domain: "Electrical & Electronics",
+            keywords: /\b(electrical|electronics|embedded systems|embedded engineer|vlsi|telecommunication|instrumentation engineer)\b/
+        },
+        {
+            domain: "Mechanical & Manufacturing",
+            keywords: /\b(mechanical engineer|automotive|manufacturing|production engineer|industrial engineer|maintenance engineer)\b/
+        },
+        {
+            domain: "Civil & Construction",
+            keywords: /\b(civil engineer|construction|structural engineer|site engineer|quantity surveyor)\b/
+        },
+        {
+            domain: "Finance & Accounting",
+            keywords: /\b(accountant|accounting|finance|financial analyst|banker|auditor|investment analyst|chartered accountant)\b/
+        },
+        {
+            domain: "Business & Management",
+            keywords: /\b(marketing|sales executive|human resources|hr manager|recruiter|business analyst|business development|operations manager|entrepreneur|management consultant|project manager)\b/
+        },
+        {
+            domain: "Education & Research",
+            keywords: /\b(teacher|lecturer|professor|researcher|academic|educator|scientist)\b/
+        },
+        {
+            domain: "Healthcare",
+            keywords: /\b(doctor|nurse|pharmacist|healthcare|medical officer|clinical|physician)\b/
+        },
+        {
+            domain: "Design",
+            keywords: /\b(graphic designer|ui\/ux|ui designer|ux designer|product designer|interior designer|visual designer)\b/
+        }
+    ];
+
+    for (const rule of rules) {
+        if (rule.keywords.test(text)) {
+            return rule.domain;
+        }
+    }
+
+    // Preserve an existing domain if one is already provided.
+    if (person.domain && String(person.domain).trim()) {
+        return String(person.domain).trim();
+    }
+
+    return "Other / Not specified";
+}
+
+function addOption(select, value, label) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+}
+
 async function loadAlumni() {
     statusMessage.textContent = "Loading alumni...";
     alumniCount.textContent = "0";
@@ -30,33 +108,44 @@ async function loadAlumni() {
             throw new Error("The API did not return an alumni list.");
         }
 
-        allAlumni = data;
+        // Classify records without changing the database.
+        allAlumni = data.map(person => ({
+            ...person,
+            classified_domain: classifyDomain(person)
+        }));
 
-        // Populate passout years from the database records.
+        // Populate passing-year dropdown using available records.
         yearFilter.replaceChildren();
         addOption(yearFilter, "", "All Passout Years");
 
-        const years = [
-            ...new Set(
-                allAlumni
-                    .map(person => person.graduation_year)
-                    .filter(year => year !== null && year !== undefined && String(year).trim() !== "")
-                    .map(year => String(year).trim())
-            )
-        ].sort((a, b) => Number(b) - Number(a));
+        const years = new Set();
 
-        // Keep the requested year range even if some years have no records.
-        for (let year = 2026; year >= 2005; year--) {
-            if (!years.includes(String(year))) {
-                years.push(String(year));
+        allAlumni.forEach(person => {
+            const year = String(person.graduation_year ?? "").trim();
+
+            if (/^\d{4}$/.test(year)) {
+                years.add(year);
             }
+        });
+
+        // Also show the requested range.
+        for (let year = 2005; year <= 2026; year++) {
+            years.add(String(year));
         }
 
-        years.sort((a, b) => Number(b) - Number(a));
+        [...years]
+            .sort((a, b) => Number(b) - Number(a))
+            .forEach(year => addOption(yearFilter, year, year));
 
-        years.forEach(year => {
-            addOption(yearFilter, year, year);
-        });
+        // Populate domain dropdown from classified records.
+        domainFilter.replaceChildren();
+        addOption(domainFilter, "", "All Domains");
+
+        const domains = [
+            ...new Set(allAlumni.map(person => person.classified_domain))
+        ].sort((a, b) => a.localeCompare(b));
+
+        domains.forEach(domain => addOption(domainFilter, domain, domain));
 
         searchAlumni();
 
@@ -65,15 +154,8 @@ async function loadAlumni() {
         alumniCount.textContent = "0";
         alumniList.replaceChildren();
         statusMessage.textContent =
-            "Unable to load alumni. Please refresh the page or try again later.";
+            "Unable to load alumni. Please refresh and try again.";
     }
-}
-
-function addOption(select, value, label) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = label;
-    select.appendChild(option);
 }
 
 function displayAlumni(alumni) {
@@ -88,7 +170,7 @@ function displayAlumni(alumni) {
         const empty = document.createElement("div");
         empty.className = "empty-state";
         empty.textContent =
-            "Try changing the passout year, domain, or search keyword.";
+            "Try another name, company, profession, passing year, or domain.";
 
         alumniList.appendChild(empty);
         return;
@@ -100,34 +182,35 @@ function displayAlumni(alumni) {
         const card = document.createElement("article");
         card.className = "alumni-card";
 
-        // Initials avatar
+        // Initials avatar.
         const avatar = document.createElement("div");
         avatar.className = "avatar";
-        avatar.textContent = (person.full_name || "?")
+        avatar.textContent = String(person.full_name || "?")
+            .trim()
             .split(/\s+/)
             .filter(Boolean)
             .slice(0, 2)
             .map(word => word[0].toUpperCase())
             .join("");
 
-        // Alumni name
+        // Alumni name.
         const name = document.createElement("h3");
         name.textContent = person.full_name || "Name unavailable";
 
-        // Working details
+        // Profession or working details.
         const working = document.createElement("p");
         working.className = "job-title";
         working.textContent =
-            person.working_details ||
             person.job_title ||
-            "Working details not provided";
+            person.working_details ||
+            "Profession not provided";
 
         card.append(avatar, name, working);
 
-        // Additional details
+        // Additional details.
         const details = [
             ["Passout Year", person.graduation_year],
-            ["Domain", person.domain],
+            ["Domain", person.classified_domain],
             ["Company", person.current_company],
             ["Location", person.location],
             ["Department", person.department]
@@ -146,7 +229,7 @@ function displayAlumni(alumni) {
             }
         });
 
-        // Skills
+        // Skills.
         if (person.skills) {
             const skills = document.createElement("div");
             skills.className = "skills";
@@ -168,7 +251,7 @@ function displayAlumni(alumni) {
             card.appendChild(skills);
         }
 
-        // LinkedIn profile
+        // LinkedIn profile.
         if (person.linkedin_url) {
             const linkedin = document.createElement("a");
             linkedin.href = person.linkedin_url;
@@ -197,13 +280,15 @@ function searchAlumni() {
             person.working_details,
             person.location,
             person.department,
-            Array.isArray(person.skills)
-                ? person.skills.join(" ")
-                : person.skills,
+            person.skills,
             person.domain,
-            person.graduation_year
+            person.classified_domain,
+            person.graduation_year,
+            person.linkedin_url
         ]
-            .map(value => value ?? "")
+            .map(value => Array.isArray(value)
+                ? value.join(" ")
+                : value ?? "")
             .join(" ")
             .toLowerCase();
 
@@ -215,8 +300,7 @@ function searchAlumni() {
 
         const matchesDomain =
             !selectedDomain ||
-            String(person.domain || "").trim().toLowerCase() ===
-                selectedDomain.trim().toLowerCase();
+            person.classified_domain === selectedDomain;
 
         return matchesSearch && matchesYear && matchesDomain;
     });
@@ -237,5 +321,5 @@ yearFilter.addEventListener("change", searchAlumni);
 domainFilter.addEventListener("change", searchAlumni);
 resetButton.addEventListener("click", resetFilters);
 
-// Load records when the page opens.
+// Load alumni when the page opens.
 loadAlumni();
