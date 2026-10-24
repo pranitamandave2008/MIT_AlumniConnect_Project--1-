@@ -14,7 +14,8 @@ async function loadAlumni() {
     statusMessage.textContent = "Loading alumni...";
 
     try {
-        const response = await fetch("/api/alumni");
+        const response = await fetch("https://mit-alumniconnect-project-1-1.onrender.com/api/alumni"
+);
 
         if (!response.ok) {
             throw new Error("Could not load alumni records.");
@@ -38,7 +39,7 @@ async function loadAlumni() {
         alumniCount.textContent = "0";
         alumniList.replaceChildren();
         statusMessage.textContent =
-            "Unable to load alumni. Check that Node.js and MySQL are running.";
+            "Unable to load alumni. Please check the backend connection.";;
     }
 }
 
