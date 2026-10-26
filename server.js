@@ -58,12 +58,22 @@ app.get("/test-db", async (req, res) => {
         });
     } catch (error) {
         console.error("MongoDB test failed:", error.message);
+
         res.status(500).json({
             error: "MongoDB connection test failed"
         });
     }
 });
 
+// Temporary login endpoint — authentication not implemented yet
+app.post("/api/login", (req, res) => {
+    return res.status(501).json({
+        message:
+            "Login endpoint found, but authentication is not implemented yet."
+    });
+});
+
+// Existing alumni directory endpoint — unchanged
 app.get("/api/alumni", async (req, res) => {
     try {
         const alumni = await db
@@ -75,6 +85,7 @@ app.get("/api/alumni", async (req, res) => {
         res.json(alumni);
     } catch (error) {
         console.error("Alumni query failed:", error.message);
+
         res.status(500).json({
             error: "Unable to retrieve alumni records"
         });
