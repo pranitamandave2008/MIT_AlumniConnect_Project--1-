@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIT AlumniConnect Login</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f0f4fa;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      padding: 32px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px #00000015;
+    }
+
+    h1 { color: #12346b; text-align: center; }
+    p { text-align: center; color: #666; }
+
+    label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 13px;
+      border: none;
+      border-radius: 7px;
+      color: white;
+      background: #12346b;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 15px;
+      color: #b42318;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <main class="login-box">
+    <h1>MIT AlumniConnect</h1>
+    <p>Sign in using your college email</p>
+
+    <form id="loginForm">
+      <label for="email">College Email</label>
+      <input
+        id="email"
+        type="email"
+        placeholder="firstname.lastname@mit.asia"
+        required
+      >
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        placeholder="Enter password"
+        required
+      >
+
+      <button type="submit">Login</button>
+      <p id="message" role="status"></p>
+    </form>
+  </main>
+
+  <script>
+    document.getElementById("loginForm")
+      .addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const email = document.getElementById("email")
+          .value.trim().toLowerCase();
+        const password = document.getElementById("password").value;
+        const message = document.getElementById("message");
+
+        message.textContent = "Checking login...";
+
+        try {
+          const response = await fetch(
+            "https://mit-alumniconnect-project-1-1.onrender.com/api/login",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password })
+            }
+          );
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || "Login failed.");
+          }
+
+          message.style.color = "green";
+          message.textContent = "Login successful!";
+
+          // Continue only after your backend confirms authentication.
+          // Add a protected dashboard after backend login is implemented.
+        } catch (error) {
+          message.style.color = "#b42318";
+          message.textContent =
+            error.message === "Failed to fetch"
+              ? "Login service is not configured yet."
+              : error.message;
+        }
+      });
+  </script>
+</body>
+</html>
