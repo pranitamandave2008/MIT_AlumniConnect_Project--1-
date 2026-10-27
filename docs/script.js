@@ -148,11 +148,24 @@ async function loadAlumni() {
     statusMessage.textContent = "Loading alumni...";
     alumniCount.textContent = "0";
     alumniList.replaceChildren();
+const token = sessionStorage.getItem("alumniToken");
 
-    try {
-        const response = await fetch(API_URL);
+if (!token) {
+    window.location.href = "./login.html";
+    return;
+}
 
-        if (!response.ok) {
+const response = await fetch(API_URL, {
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+});
+
+if (response.status === 401 || response.status === 403) {
+    sessionStorage.removeItem("alumniToken");
+    window.location.href = "./login.html";
+    return;
+}        if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
         }
 
