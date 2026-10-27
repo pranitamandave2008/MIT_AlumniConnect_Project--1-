@@ -20,7 +20,7 @@ const DATABASE_NAME = "AlumniConnect";
 
 app.use(express.json({ limit: "20kb" }));
 
-// CORS: allow the GitHub Pages frontend.
+// CORS
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 const client = new MongoClient(MONGODB_URI || "");
 let db;
 
-// Verify the JWT token sent by the frontend.
+// Authentication middleware
 function requireAuth(req, res, next) {
     const authorization = req.headers.authorization || "";
 
@@ -71,7 +71,7 @@ function requireAuth(req, res, next) {
     }
 }
 
-// Limit repeated login attempts.
+// Rate limits
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 10,
@@ -82,7 +82,29 @@ const loginLimiter = rateLimit({
     }
 });
 
-// Basic backend status.
+const registerLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: {
+        message: "Too many registration attempts. Try again later."
+    }
+});
+
+// Password validation
+function isValidPassword(password) {
+    return (
+        password.length >= 8 &&
+        password.length <= 200 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /[0-9]/.test(password) &&
+        /[^A-Za-z0-9]/.test(password)
+    );
+}
+
+// Basic status
 app.get("/", (req, res) => {
     res.send("MIT AlumniConnect Backend is Running!");
 });
@@ -91,7 +113,7 @@ app.get("/health", (req, res) => {
     res.json({ status: "ok" });
 });
 
-// Test the MongoDB connection.
+// Test MongoDB
 app.get("/test-db", async (req, res) => {
     try {
         await db.command({ ping: 1 });
@@ -104,41 +126,142 @@ app.get("/test-db", async (req, res) => {
         console.error("Database test failed:", error.message);
 
         res.status(500).json({
-            error: "Database test failed"
+            message: "Database test failed."
         });
     }
 });
 
-// Login with an approved college account.
+// CREATE ACCOUNT
+app.post(
+    "/api/register",
+    registerLimiter,
+    async (req, res) => {
+        try {
+            const username = String(req.body.username || "")
+                .trim()
+                .toLowerCase();
+
+            const email = String(req.body.email || "")
+                .trim()
+                .toLowerCase();
+
+            const password = String(req.body.password || "");
+            const confirmPassword = String(
+                req.body.confirmPassword || ""
+            );
+
+            if (!/^[a-z0-9._]{3,20}$/.test(username)) {
+                return res.status(400).json({
+                    message:
+                        "Username must be 3–20 characters using letters, numbers, dots, or underscores."
+                });
+            }
+
+            if (!/^[a-z0-9._%+-]+@mit\.asia$/.test(email)) {
+                return res.status(400).json({
+                    message:
+                        "Enter a valid email ending in @mit.asia."
+                });
+            }
+
+            if (!isValidPassword(password)) {
+                return res.status(400).json({
+                    message:
+                        "Password must have at least 8 characters, uppercase, lowercase, a number, and a special character."
+                });
+            }
+
+            if (password !== confirmPassword) {
+                return res.status(400).json({
+                    message: "Passwords do not match."
+                });
+            }
+
+            const users = db.collection("users");
+
+            const existingUser = await users.findOne({
+                $or: [
+                    { email },
+                    { username }
+                ]
+            });
+
+            if (existingUser) {
+                return res.status(409).json({
+                    message:
+                        "This email or username is already registered."
+                });
+            }
+
+            const passwordHash = await bcrypt.hash(password, 12);
+
+            await users.insertOne({
+                username,
+                email,
+                passwordHash,
+                role: "student",
+                approved: true,
+                mustChangePassword: false,
+                createdAt: new Date()
+            });
+
+            return res.status(201).json({
+                message:
+                    "Account created successfully. You can now log in."
+            });
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(409).json({
+                    message:
+                        "This email or username is already registered."
+                });
+            }
+
+            console.error("Registration failed:", error.message);
+
+            return res.status(500).json({
+                message: "Unable to create your account right now."
+            });
+        }
+    }
+);
+
+// LOGIN USING USERNAME OR EMAIL
 app.post("/api/login", loginLimiter, async (req, res) => {
     try {
-        const email = String(req.body.email || "")
-            .trim()
-            .toLowerCase();
+        const identifier = String(
+            req.body.identifier || req.body.email || ""
+        ).trim().toLowerCase();
 
         const password = String(req.body.password || "");
 
         if (
-            !/^[a-z0-9._%+-]+@mit\.asia$/.test(email) ||
+            !identifier ||
+            identifier.length > 254 ||
             !password ||
             password.length > 200
         ) {
             return res.status(400).json({
-                message: "Enter a valid college email and password."
+                message: "Enter your username/email and password."
             });
         }
 
-        const user = await db.collection("users").findOne({ email });
+        const user = await db.collection("users").findOne({
+            $or: [
+                { email: identifier },
+                { username: identifier }
+            ]
+        });
 
         if (!user || !user.passwordHash) {
             return res.status(401).json({
-                message: "Invalid email or password."
+                message: "Invalid username/email or password."
             });
         }
 
         if (user.approved !== true) {
             return res.status(403).json({
-                message: "Your account has not been approved by an admin."
+                message: "Your account has not been approved."
             });
         }
 
@@ -149,7 +272,7 @@ app.post("/api/login", loginLimiter, async (req, res) => {
 
         if (!passwordMatches) {
             return res.status(401).json({
-                message: "Invalid email or password."
+                message: "Invalid username/email or password."
             });
         }
 
@@ -170,6 +293,7 @@ app.post("/api/login", loginLimiter, async (req, res) => {
         return res.json({
             message: "Login successful.",
             token,
+            username: user.username || "",
             mustChangePassword
         });
     } catch (error) {
@@ -181,7 +305,7 @@ app.post("/api/login", loginLimiter, async (req, res) => {
     }
 });
 
-// Change the temporary password.
+// CHANGE PASSWORD
 app.post(
     "/api/change-password",
     requireAuth,
@@ -195,16 +319,10 @@ app.post(
                 req.body.newPassword || ""
             );
 
-            if (
-                newPassword.length < 10 ||
-                newPassword.length > 200 ||
-                !/[a-z]/.test(newPassword) ||
-                !/[A-Z]/.test(newPassword) ||
-                !/[0-9]/.test(newPassword)
-            ) {
+            if (!isValidPassword(newPassword)) {
                 return res.status(400).json({
                     message:
-                        "Use at least 10 characters, including uppercase, lowercase, and a number."
+                        "Password must have at least 8 characters, uppercase, lowercase, a number, and a special character."
                 });
             }
 
@@ -217,24 +335,16 @@ app.post(
 
             if (!ObjectId.isValid(req.user.sub)) {
                 return res.status(401).json({
-                    message: "Invalid account session. Please log in again."
+                    message: "Invalid account session."
                 });
             }
 
-            const userId = new ObjectId(req.user.sub);
             const users = db.collection("users");
+            const userId = new ObjectId(req.user.sub);
 
-            const user = await users.findOne({
-                _id: userId
-            });
+            const user = await users.findOne({ _id: userId });
 
-            if (!user) {
-                return res.status(401).json({
-                    message: "Account not found."
-                });
-            }
-
-            if (user.approved !== true) {
+            if (!user || user.approved !== true) {
                 return res.status(403).json({
                     message: "Your account is not approved."
                 });
@@ -267,7 +377,6 @@ app.post(
                 }
             );
 
-            // Return a fresh token with the password-change flag cleared.
             const token = jwt.sign(
                 {
                     sub: user._id.toString(),
@@ -297,13 +406,12 @@ app.post(
     }
 );
 
-// Protect the existing alumni collection.
+// PROTECTED ALUMNI DIRECTORY
 app.get("/api/alumni", requireAuth, async (req, res) => {
     try {
-        // Check the current database state as well as the JWT.
         if (!ObjectId.isValid(req.user.sub)) {
             return res.status(401).json({
-                message: "Invalid account session. Please log in again."
+                message: "Invalid account session."
             });
         }
 
@@ -325,7 +433,7 @@ app.get("/api/alumni", requireAuth, async (req, res) => {
 
         if (user.mustChangePassword === true) {
             return res.status(403).json({
-                message: "Change your temporary password first."
+                message: "Change your password first."
             });
         }
 
@@ -339,12 +447,12 @@ app.get("/api/alumni", requireAuth, async (req, res) => {
         console.error("Alumni query failed:", error.message);
 
         return res.status(500).json({
-            error: "Unable to retrieve alumni records"
+            message: "Unable to retrieve alumni records."
         });
     }
 });
 
-// Start the backend.
+// START SERVER
 async function startServer() {
     try {
         if (!MONGODB_URI) {
@@ -359,8 +467,23 @@ async function startServer() {
 
         await client.connect();
 
-        // Explicitly use the same database as create-user.js.
         db = client.db(DATABASE_NAME);
+
+        // Unique indexes prevent duplicate usernames/emails.
+        await db.collection("users").createIndex(
+            { email: 1 },
+            { unique: true }
+        );
+
+        await db.collection("users").createIndex(
+            { username: 1 },
+            {
+                unique: true,
+                partialFilterExpression: {
+                    username: { $type: "string" }
+                }
+            }
+        );
 
         await db.command({ ping: 1 });
 
