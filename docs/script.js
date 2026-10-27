@@ -144,28 +144,33 @@ function addOption(select, value, label) {
     select.appendChild(option);
 }
 
+
 async function loadAlumni() {
     statusMessage.textContent = "Loading alumni...";
     alumniCount.textContent = "0";
     alumniList.replaceChildren();
-const token = sessionStorage.getItem("alumniToken");
 
-if (!token) {
-    window.location.href = "./login.html";
-    return;
-}
+    const token = sessionStorage.getItem("alumniToken");
 
-const response = await fetch(API_URL, {
-    headers: {
-        Authorization: `Bearer ${token}`
+    if (!token) {
+        window.location.href = "./login.html";
+        return;
     }
-});
 
-if (response.status === 401 || response.status === 403) {
-    sessionStorage.removeItem("alumniToken");
-    window.location.href = "./login.html";
-    return;
-}        if (!response.ok) {
+    try {
+        const response = await fetch(API_URL, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            sessionStorage.removeItem("alumniToken");
+            window.location.href = "./login.html";
+            return;
+        }
+
+        if (!response.ok) {
             throw new Error(`API request failed: ${response.status}`);
         }
 
@@ -180,7 +185,7 @@ if (response.status === 401 || response.status === 403) {
             classified_domain: classifyDomain(person)
         }));
 
-        // Populate the passing-year dropdown.
+        // Populate passout-year options.
         yearFilter.replaceChildren();
         addOption(yearFilter, "", "All Passout Years");
 
@@ -202,7 +207,7 @@ if (response.status === 401 || response.status === 403) {
             .sort((a, b) => Number(b) - Number(a))
             .forEach(year => addOption(yearFilter, year, year));
 
-        // Populate the domain dropdown with the existing categories.
+        // Populate domain options.
         domainFilter.replaceChildren();
         addOption(domainFilter, "", "All Domains");
 
