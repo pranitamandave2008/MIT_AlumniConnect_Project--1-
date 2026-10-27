@@ -140,7 +140,9 @@
         }
 
         if (!result.token) {
-          throw new Error("Login response did not contain an authentication token.");
+          throw new Error(
+            "Login response did not contain an authentication token."
+          );
         }
 
         sessionStorage.setItem("alumniToken", result.token);
@@ -166,6 +168,8 @@
     changeForm.addEventListener("submit", async function(event) {
       event.preventDefault();
 
+      const currentPassword =
+        document.getElementById("password").value;
       const newPassword =
         document.getElementById("newPassword").value;
       const confirmPassword =
@@ -174,9 +178,9 @@
       const token = sessionStorage.getItem("alumniToken");
 
       if (!token) {
-        showMessage("Please log in again.");
-        loginForm.classList.remove("hidden");
+        showMessage("Your session has expired. Please log in again.");
         changeForm.classList.add("hidden");
+        loginForm.classList.remove("hidden");
         return;
       }
 
@@ -185,12 +189,18 @@
         return;
       }
 
+      if (newPassword === currentPassword) {
+        showMessage("Your new password must differ from your current password.");
+        return;
+      }
+
       if (!/[A-Z]/.test(newPassword) ||
           !/[a-z]/.test(newPassword) ||
           !/[0-9]/.test(newPassword) ||
-          newPassword.length < 10) {
+          newPassword.length < 10 ||
+          newPassword.length > 200) {
         showMessage(
-          "Use at least 10 characters, including uppercase, lowercase and a number."
+          "Use 10–200 characters, including uppercase, lowercase and a number."
         );
         return;
       }
@@ -207,7 +217,10 @@
               "Content-Type": "application/json",
               "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify({ newPassword })
+            body: JSON.stringify({
+              oldPassword: currentPassword,
+              newPassword: newPassword
+            })
           }
         );
 
@@ -221,7 +234,9 @@
           sessionStorage.setItem("alumniToken", result.token);
         }
 
-        showMessage("Password changed successfully. Opening directory...", true);
+        showMessage(
+          "Password changed successfully. Opening directory...", true
+        );
         window.location.replace("./index.html");
       } catch (error) {
         showMessage(error.message === "Failed to fetch"
