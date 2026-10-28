@@ -65,35 +65,52 @@
     }
 
     .hidden { display: none; }
+
+    .link {
+      color: #12346b;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <main class="login-box">
     <h1>MIT AlumniConnect</h1>
-    <p id="subtitle">Sign in using your college email</p>
+    <p id="subtitle">Sign in to your account</p>
 
     <form id="loginForm">
-      <label for="email">College Email</label>
-      <input id="email" type="email"
-        placeholder="firstname.lastname@mit.asia" required>
+      <label for="identifier">Username or College Email</label>
+      <input id="identifier" type="text"
+        placeholder="Username or firstname.lastname@mit.asia"
+        autocomplete="username" required>
 
       <label for="password">Password</label>
       <input id="password" type="password"
-        placeholder="Enter password" required>
+        placeholder="Enter password"
+        autocomplete="current-password" required>
 
       <button id="loginButton" type="submit">Login</button>
     </form>
 
+    <p id="createLink">
+      Don't have an account?
+      <a class="link" href="./register.html">Create Account</a>
+    </p>
+
     <form id="changePasswordForm" class="hidden">
-      <p>Your account requires a new password before you can access the alumni directory.</p>
+      <p>Set a new password before accessing the alumni directory.</p>
 
       <label for="newPassword">New Password</label>
       <input id="newPassword" type="password"
-        minlength="10" autocomplete="new-password" required>
+        minlength="8" maxlength="200"
+        autocomplete="new-password" required>
 
       <label for="confirmPassword">Confirm New Password</label>
       <input id="confirmPassword" type="password"
-        minlength="10" autocomplete="new-password" required>
+        minlength="8" maxlength="200"
+        autocomplete="new-password" required>
 
       <button id="changeButton" type="submit">Change Password</button>
     </form>
@@ -109,16 +126,26 @@
     const changeForm = document.getElementById("changePasswordForm");
     const message = document.getElementById("message");
     const subtitle = document.getElementById("subtitle");
+    const createLink = document.getElementById("createLink");
 
     function showMessage(text, success = false) {
       message.style.color = success ? "green" : "#b42318";
       message.textContent = text;
     }
 
+    function validPassword(password) {
+      return password.length >= 8 &&
+        password.length <= 200 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /[0-9]/.test(password) &&
+        /[^A-Za-z0-9]/.test(password);
+    }
+
     loginForm.addEventListener("submit", async function(event) {
       event.preventDefault();
 
-      const email = document.getElementById("email")
+      const identifier = document.getElementById("identifier")
         .value.trim().toLowerCase();
       const password = document.getElementById("password").value;
       const button = document.getElementById("loginButton");
@@ -130,7 +157,7 @@
         const response = await fetch(`${BASE_URL}/api/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ identifier, password })
         });
 
         const result = await response.json();
@@ -140,9 +167,7 @@
         }
 
         if (!result.token) {
-          throw new Error(
-            "Login response did not contain an authentication token."
-          );
+          throw new Error("Authentication token was not received.");
         }
 
         sessionStorage.setItem("alumniToken", result.token);
@@ -150,8 +175,9 @@
         if (result.mustChangePassword === true) {
           loginForm.classList.add("hidden");
           changeForm.classList.remove("hidden");
+          createLink.classList.add("hidden");
           subtitle.textContent = "Set your new password";
-          showMessage("Please change your temporary password.", true);
+          showMessage("Please change your password.", true);
         } else {
           showMessage("Login successful! Opening directory...", true);
           window.location.replace("./index.html");
@@ -168,7 +194,7 @@
     changeForm.addEventListener("submit", async function(event) {
       event.preventDefault();
 
-      const currentPassword =
+      const oldPassword =
         document.getElementById("password").value;
       const newPassword =
         document.getElementById("newPassword").value;
@@ -178,30 +204,27 @@
       const token = sessionStorage.getItem("alumniToken");
 
       if (!token) {
-        showMessage("Your session has expired. Please log in again.");
+        showMessage("Your session expired. Please log in again.");
         changeForm.classList.add("hidden");
         loginForm.classList.remove("hidden");
+        createLink.classList.remove("hidden");
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        showMessage("The passwords do not match.");
+        showMessage("Passwords do not match.");
         return;
       }
 
-      if (newPassword === currentPassword) {
-        showMessage("Your new password must differ from your current password.");
-        return;
-      }
-
-      if (!/[A-Z]/.test(newPassword) ||
-          !/[a-z]/.test(newPassword) ||
-          !/[0-9]/.test(newPassword) ||
-          newPassword.length < 10 ||
-          newPassword.length > 200) {
+      if (!validPassword(newPassword)) {
         showMessage(
-          "Use 10–200 characters, including uppercase, lowercase and a number."
+          "Use at least 8 characters with uppercase, lowercase, a number and a special character."
         );
+        return;
+      }
+
+      if (newPassword === oldPassword) {
+        showMessage("Choose a password different from your current password.");
         return;
       }
 
@@ -217,10 +240,7 @@
               "Content-Type": "application/json",
               "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify({
-              oldPassword: currentPassword,
-              newPassword: newPassword
-            })
+            body: JSON.stringify({ oldPassword, newPassword })
           }
         );
 
@@ -234,9 +254,7 @@
           sessionStorage.setItem("alumniToken", result.token);
         }
 
-        showMessage(
-          "Password changed successfully. Opening directory...", true
-        );
+        showMessage("Password changed successfully!", true);
         window.location.replace("./index.html");
       } catch (error) {
         showMessage(error.message === "Failed to fetch"

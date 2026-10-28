@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account | MIT AlumniConnect</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f0f4fa;
+    }
+
+    .register-box {
+      width: 100%;
+      max-width: 430px;
+      padding: 30px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px #00000015;
+    }
+
+    h1 {
+      color: #12346b;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    p {
+      text-align: center;
+      color: #666;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 6px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 13px;
+      border: none;
+      border-radius: 7px;
+      background: #12346b;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .rules {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .rule { color: #777; }
+    .rule.valid { color: #16803c; }
+
+    #message {
+      overflow-wrap: anywhere;
+      margin-top: 15px;
+    }
+
+    .link {
+      color: #12346b;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .link:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body>
+  <main class="register-box">
+    <h1>MIT AlumniConnect</h1>
+    <p>Create your account</p>
+
+    <form id="registerForm">
+      <label for="username">Choose Username</label>
+      <input id="username" type="text"
+        placeholder="e.g. pranita_123"
+        minlength="3" maxlength="20"
+        pattern="[a-zA-Z0-9._]{3,20}"
+        autocomplete="username" required>
+      <small>3–20 letters, numbers, dots or underscores.</small>
+
+      <label for="email">MIT College Email</label>
+      <input id="email" type="email"
+        placeholder="firstname.lastname@mit.asia"
+        autocomplete="email"
+        maxlength="254" required>
+
+      <label for="password">Create Password</label>
+      <input id="password" type="password"
+        placeholder="Create a strong password"
+        minlength="8" maxlength="200"
+        autocomplete="new-password" required>
+
+      <div class="rules" aria-live="polite">
+        <div class="rule" id="r-length">○ At least 8 characters</div>
+        <div class="rule" id="r-upper">○ One uppercase letter (A–Z)</div>
+        <div class="rule" id="r-lower">○ One lowercase letter (a–z)</div>
+        <div class="rule" id="r-number">○ One number (0–9)</div>
+        <div class="rule" id="r-special">○ One special character</div>
+      </div>
+
+      <label for="confirmPassword">Confirm Password</label>
+      <input id="confirmPassword" type="password"
+        placeholder="Enter password again"
+        minlength="8" maxlength="200"
+        autocomplete="new-password" required>
+
+      <button id="registerButton" type="submit">
+        Create Account
+      </button>
+    </form>
+
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <p>
+      Already have an account?
+      <a class="link" href="./login.html">Login</a>
+    </p>
+  </main>
+
+  <script>
+    const BASE_URL =
+      "https://mit-alumniconnect-project-1-1.onrender.com";
+
+    const form = document.getElementById("registerForm");
+    const passwordInput = document.getElementById("password");
+    const confirmInput = document.getElementById("confirmPassword");
+    const message = document.getElementById("message");
+    const button = document.getElementById("registerButton");
+
+    function showMessage(text, success = false) {
+      message.style.color = success ? "green" : "#b42318";
+      message.textContent = text;
+    }
+
+    function checkRule(id, valid, text) {
+      const element = document.getElementById(id);
+      element.classList.toggle("valid", valid);
+      element.textContent = `${valid ? "✓" : "○"} ${text}`;
+    }
+
+    function validPassword(password) {
+      return password.length >= 8 &&
+        password.length <= 200 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /[0-9]/.test(password) &&
+        /[^A-Za-z0-9]/.test(password);
+    }
+
+    passwordInput.addEventListener("input", function() {
+      const password = passwordInput.value;
+
+      checkRule("r-length", password.length >= 8,
+        "At least 8 characters");
+      checkRule("r-upper", /[A-Z]/.test(password),
+        "One uppercase letter (A–Z)");
+      checkRule("r-lower", /[a-z]/.test(password),
+        "One lowercase letter (a–z)");
+      checkRule("r-number", /[0-9]/.test(password),
+        "One number (0–9)");
+      checkRule("r-special", /[^A-Za-z0-9]/.test(password),
+        "One special character");
+    });
+
+    form.addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const username = document.getElementById("username")
+        .value.trim().toLowerCase();
+      const email = document.getElementById("email")
+        .value.trim().toLowerCase();
+      const password = passwordInput.value;
+      const confirmPassword = confirmInput.value;
+
+      if (!/^[a-z0-9._]{3,20}$/.test(username)) {
+        showMessage("Please enter a valid username.");
+        return;
+      }
+
+      if (!/^[a-z0-9._%+-]+@mit\.asia$/.test(email)) {
+        showMessage("Use a valid email ending in @mit.asia.");
+        return;
+      }
+
+      if (!validPassword(password)) {
+        showMessage("Please meet all password requirements.");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showMessage("Passwords do not match.");
+        return;
+      }
+
+      button.disabled = true;
+      showMessage("Creating your account...");
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username,
+            email,
+            password,
+            confirmPassword
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "Registration failed.");
+        }
+
+        showMessage(
+          "Account created successfully! Redirecting to login...",
+          true
+        );
+
+        form.reset();
+
+        window.setTimeout(() => {
+          window.location.href = "./login.html";
+        }, 1200);
+      } catch (error) {
+        showMessage(
+          error.message === "Failed to fetch"
+            ? "Cannot connect to the server. Please try again."
+            : error.message
+        );
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
